@@ -23,7 +23,7 @@ res.status(500).json({ message: err.message });
 export const deleteTask = async (req,res)=>{
  const objectId=req.params.objectId.trim();
  try{
-    console.log(objectId);
+    //console.log(objectId);
     await Task.findByIdAndDelete(objectId);
     
     res.status(200).json({message:"task is successfully deleted"});
@@ -66,17 +66,46 @@ export const updateTask = async (req, res) => {
 
 export const getTasks = async (req, res) => {  //ok
     const  UI  = req.params.userId.trim();  // Get userId from request params
-    //console.log(typeof(UI),UI);
+    console.log("api called  <get all tasks> ");
     try {
-          await Task.find({ userId:UI  }).then((tasks)=>{
-          //  console.log(tasks); 
-            res.status(200).json(tasks);
-          })
+        //console.log("entered");
+        await Task.find( { userId: UI }, { userId: 1, taskTitle: 1, _id: 1 })
+        .then((task)=>{
+            res.status(200).json(task);
+            // console.log("all task has response. sent");
+            // console.log(task)
+        });
+           
+          
         
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
 };
 
+
+export const getOneTask = async (req,res) =>{
+    const objectId = req.params.objectId;
+    console.log("api entered <task description>");
+    console.log("objectId: "+objectId);
+    try{
+      const result =  await Task.findOne({"_id":objectId})
+      console.log("result", result)      
+      return res.status(200).send({status : "success",
+        statusCode:200,
+        message: "successfully fetched task data",
+        result});
+      
+
+        // await Task.findById(objectId).select('task').then((task)=>{
+        //     res.status(200).json(task);
+        //     console.log("task message");
+        //     console.log(task);
+        // })
+    }
+    catch(err){
+        res.status(400);
+    }
+}
 
 // don't use destructing object in params

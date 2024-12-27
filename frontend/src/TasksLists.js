@@ -1,137 +1,160 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Dialog, DialogActions, DialogContent, DialogTitle, TextField, Button, Fab } from '@mui/material';
+import { Dialog, DialogActions, DialogContent, DialogTitle, TextField, Button, Fab, IconButton, Typography } from '@mui/material';
+import { styled } from '@mui/material/styles';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import AddIcon from '@mui/icons-material/Add'; // Round Plus Icon
+import AddIcon from '@mui/icons-material/Add';
+import CloseIcon from '@mui/icons-material/Close';
+import React from 'react';
+const BootstrapDialog = styled(Dialog)(({ theme }) => ({
+  '& .MuiDialogContent-root': {
+    padding: theme.spacing(2),
+  },
+  '& .MuiDialogActions-root': {
+    padding: theme.spacing(1),
+  },
+}));
 
 const TaskLists = () => {
   const [lists, setList] = useState([]);
-  const [openDialog, setOpenDialog] = useState(false); // Dialog visibility state
+  const [openDialog, setOpenDialog] = useState(false);
   const [taskTitle, setTaskTitle] = useState('');
   const [taskDescription, setTaskDescription] = useState('');
-  const [selectedTask, setSelectedTask] = useState(null); // To store the selected task for updating
-  const [isUpdate, setIsUpdate] = useState(false); // Flag to differentiate between add and update
-  const [userId] = useState('12315'); // Hardcoded userId (this can be dynamic based on the logged-in user)
+  const [selectedTask, setSelectedTask] = useState(null);
+  const [isUpdate, setIsUpdate] = useState(false);
+  const [userId] = useState('12315');
+  const [openMessageDialog, setOpenMessageDialog] = useState(false); // used for showing message dialog status
 
   useEffect(() => {
-    axios.get(`http://localhost:5000/api/tasks/getTask/12315`)
+    axios.get(`http://localhost:5000/api/tasks/getTasks/12315`)
       .then((response) => {
-        setList(response.data); // Set the list of tasks from the response
+        setList(response.data);
+        console.log(response.data);
       })
       .catch((err) => {
-        console.log("Error message", err); // Handle errors
+        console.log("Error message", err);
       });
   }, [userId]);
 
-  // Handle task creation (add new task)
   const handleAddTask = () => {
-    const newTask = {
-      taskTitle,
-      task: taskDescription,
-    };
+    const newTask = { taskTitle, task: taskDescription };
 
     axios.post(`http://localhost:5000/api/tasks/addTask/${userId}`, newTask)
       .then((response) => {
-        setList([...lists, response.data]); // Add the new task to the task list
-        setOpenDialog(false); // Close the dialog
-        setTaskTitle(''); // Reset the form inputs
+        setList([...lists, response.data]);
+        setOpenDialog(false);
+        setTaskTitle('');
         setTaskDescription('');
-        toast.success("Task created successfully!"); // Show success message
+        toast.success("Task created successfully!");
       })
       .catch((err) => {
         console.log("Error creating task", err);
-        toast.error("Failed to create task."); // Show error message
+        toast.error("Failed to create task.");
       });
   };
 
-  // Handle task update
   const handleUpdateTask = () => {
-    const updatedTask = {
-      taskTitle,
-      task: taskDescription,
-    };
+    const updatedTask = { taskTitle, task: taskDescription };
 
     axios.put(`http://localhost:5000/api/tasks/updateTask/${selectedTask._id}`, updatedTask)
       .then((response) => {
-        // Update the task list with the updated task
         setList(lists.map(task => (task._id === selectedTask._id ? response.data.task : task)));
-        setOpenDialog(false); // Close the dialog
-        setTaskTitle(''); // Reset the form inputs
+        setOpenDialog(false);
+        setTaskTitle('');
         setTaskDescription('');
-        toast.success("Task updated successfully!"); // Show success message
+        toast.success("Task updated successfully!");
       })
       .catch((err) => {
         console.log("Error updating task", err);
-        toast.error("Failed to update task."); // Show error message
+        toast.error("Failed to update task.");
       });
   };
 
-  // Handle opening the dialog for adding a new task
   const handleOpenDialog = () => {
-    setIsUpdate(false); // Set isUpdate flag to false for adding new task
+    setIsUpdate(false);
+    setTaskTitle('');
+    setTaskDescription('');
     setOpenDialog(true);
   };
 
-  // Handle opening the dialog for updating a task
   const handleOpenUpdateDialog = (task) => {
-    setIsUpdate(true); // Set isUpdate flag to true for updating task
-    setSelectedTask(task); // Store selected task
-    setTaskTitle(task.taskTitle); // Pre-fill task title
-    setTaskDescription(task.task); // Pre-fill task description
-    setOpenDialog(true); // Open the dialog
+    setIsUpdate(true);
+    setSelectedTask(task);
+    setTaskTitle(task.taskTitle);
+    setTaskDescription(task.task);
+    setOpenDialog(true);
   };
 
-  // Handle task deletion
   const handleDeleteTask = (taskId) => {
     axios.delete(`http://localhost:5000/api/tasks/deleteTask/${taskId}`)
       .then(() => {
-        // Remove the deleted task from the list
         setList(lists.filter(task => task._id !== taskId));
-        toast.success("Task deleted successfully!"); // Show success message
+        toast.success("Task deleted successfully!");
       })
       .catch((err) => {
         console.log("Error deleting task", err);
-        toast.error("Failed to delete task."); // Show error message
+        toast.error("Failed to delete task.");
       });
   };
 
-  // Handle closing the dialog
   const handleCloseDialog = () => {
     setOpenDialog(false);
-    setTaskTitle(''); // Reset the form inputs
+    setTaskTitle('');
     setTaskDescription('');
   };
 
+  const handleViewTask = async(task) => {
+    console.log(task._id)
+   const responseData =await axios.get(`http://localhost:5000/api/tasks/getTask/${task._id}`);
+   console.log(responseData.data.result);
+    
+    setTaskDescription(responseData.data.result.task);
+    setTaskTitle(task.taskTitle);
+    setOpenMessageDialog(true);
+  };
+
+  const handleCloseShowMessage = () => {
+    setOpenMessageDialog(false);
+    setTaskDescription('');
+    setTaskTitle('');
+  };
+
+  //const showMessageStyle={height:'1500px',width:'2000px'}
+
   return (
     <div>
-      <h1>Tasks:</h1>
-      <ul>
+      <h1 style={{ textAlign: 'center' }}>Tasks</h1>
+      <ul style={{ listStyleType: 'none', padding: 0 }}>
         {lists.length > 0 ? (
           lists.map((task) => (
-            <li key={task._id} style={{ marginBottom: '10px' }}>
-              <div style={{ display: 'flex', alignItems: 'center' }}>
+            <li key={task._id} style={{ margin: '10px 15px 10px 15px', height: '100px' }}>
+              <div style={{
+                border: '2px solid #000',
+                borderRadius: '10px',
+                padding: '20px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}>
                 <h3
-                  onClick={() => handleOpenUpdateDialog(task)} // Clicking on title to show details in the update dialog
-                  style={{ cursor: 'pointer', marginRight: '10px' }}
+                  onClick={() => handleViewTask(task)}
+                  style={{ cursor: 'pointer', flexGrow: 1, textAlign: 'center' }}
                 >
                   {task.taskTitle}
                 </h3>
-                <button onClick={() => handleOpenUpdateDialog(task)} style={{ marginRight: '10px' }}>
-                  Update
-                </button>
-                <button onClick={() => handleDeleteTask(task._id)}>
-                  Delete
-                </button>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button onClick={() => handleOpenUpdateDialog(task)}>Update</button>
+                  <button onClick={() => handleDeleteTask(task._id)}>Delete</button>
+                </div>
               </div>
             </li>
           ))
         ) : (
-          <h1>No Tasks</h1>
+          <h2 style={{ textAlign: 'center' }}>No Tasks</h2>
         )}
       </ul>
 
-      {/* Add or Update Task Dialog */}
       <Dialog open={openDialog} onClose={handleCloseDialog}>
         <DialogTitle>{isUpdate ? 'Update Task' : 'Add New Task'}</DialogTitle>
         <DialogContent>
@@ -159,22 +182,57 @@ const TaskLists = () => {
           </Button>
         </DialogActions>
       </Dialog>
-
-      {/* Floating Action Button to trigger dialog */}
+      <React.Fragment>
+      <BootstrapDialog
+        onClose={handleCloseShowMessage}
+        aria-labelledby="customized-dialog-title"
+        open={openMessageDialog}
+        maxWidth="md" // Set max width (xs, sm, md, lg, xl)
+        fullWidth // Ensures it takes the full width up to maxWidth
+        PaperProps={{
+          sx: {
+            width: '600px', // Fixed width
+            height: '400px', // Fixed height
+            margin: 'auto', // Centers the dialog
+          },
+        }}
+      >
+        <DialogTitle sx={{ m: 0, p: 2 }} id="customized-dialog-title">
+          {taskTitle}
+        </DialogTitle>
+        <IconButton
+          aria-label="close"
+          onClick={handleCloseShowMessage}
+          sx={(theme) => ({
+            position: 'absolute',
+            right: 8,
+            top: 8,
+            color: theme.palette.grey[500],
+          })}
+        >
+          <CloseIcon />
+        </IconButton>
+        <DialogContent dividers>
+          <Typography gutterBottom>
+            {taskDescription}
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button autoFocus onClick={handleCloseShowMessage}>
+            OK
+          </Button>
+        </DialogActions>
+      </BootstrapDialog>
+      </React.Fragment>
       <Fab
         color="primary"
         aria-label="add"
-        style={{
-          position: 'fixed',
-          bottom: '20px',
-          right: '20px',
-        }}
+        style={{ position: 'fixed', bottom: '20px', right: '20px' }}
         onClick={handleOpenDialog}
       >
         <AddIcon />
       </Fab>
 
-      {/* Toastify container for notifications */}
       <ToastContainer />
     </div>
   );
